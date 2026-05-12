@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>🌱 My First Cellular Automata</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #170032;
+      --bg2:       #37025a;
+      --purple:    #830cde;
+      --lav:       #A55AFF;
+      --soft-lav:  #c4b5fd;
+      --pink:      #dc4ce8;
+      --hot-pink:  #ff69b4;
+      --teal:      #67FEBD;
+      --cyan:      #00ffff;
+      --gold:      #fecd39;
+      --white:     #ffffff;
+      --text:      #e8d5ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: radial-gradient(ellipse at 30% 20%, #37025a 0%, #170032 60%);
+      color: var(--text);
+      font-family: 'Nunito', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #stars {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 0;
+    }
+
+    #app {
+      position: relative; z-index: 1;
+      width: 100%;
+      max-width: 1280px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      gap: 0;
+    }
+
+    .page {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 18px;
+      width: 100%;
+      animation: fadeUp 0.4s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-text {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(22px, 5.5vw, 34px);
+      text-align: center;
+      color: var(--white);
+      line-height: 1.35;
+      text-shadow: 0 0 24px rgba(196,181,253,0.45);
+    }
+    .page-text .sub {
+      font-size: clamp(16px, 3.8vw, 24px);
+      color: var(--soft-lav);
+      display: block;
+      margin-top: 4px;
+    }
+
+    .hint {
+      font-family: 'Fredoka One', cursive;
+      font-size: 15px;
+      color: rgba(196,181,253,0.55);
+      text-align: center;
+      animation: breathe 2.2s ease-in-out infinite;
+      min-height: 36px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    @keyframes breathe {
+      0%,100% { opacity:.5; } 50% { opacity:1; }
+    }
+
+    .btn {
+      font-family: 'Fredoka One', cursive;
+      border: none; cursor: pointer;
+      border-radius: 50px; transition: all 0.18s;
+      letter-spacing: 0.3px;
+      user-select: none;
+    }
+    .btn:active { transform: scale(0.93); }
+
+    .btn-next {
+      font-size: 20px; padding: 13px 30px;
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      color: white;
+      box-shadow: 0 0 22px rgba(220,76,232,0.45);
+    }
+    .btn-next:hover { box-shadow: 0 0 36px rgba(220,76,232,0.75); transform: scale(1.04); }
+
+    .btn-play {
+      font-size: 22px; padding: 14px 38px;
+      background: linear-gradient(135deg, var(--teal), var(--cyan));
+      color: var(--bg);
+      box-shadow: 0 0 22px rgba(103,254,189,0.45);
+    }
+    .btn-play:hover { box-shadow: 0 0 40px rgba(103,254,189,0.75); }
+    .btn-play.paused {
+      background: linear-gradient(135deg, #fecd39, #ff9a9e);
+      box-shadow: 0 0 22px rgba(254,205,57,0.45);
+    }
+
+    .btn-ghost {
+      font-size: 16px; padding: 10px 22px;
+      background: rgba(130,50,200,0.25);
+      color: var(--soft-lav);
+      border: 1px solid rgba(165,90,255,0.3);
+    }
+    .btn-ghost:hover { background: rgba(130,50,200,0.45); }
+
+    .btn-sm {
+      font-family: 'Fredoka One', cursive;
+      font-size: 15px; padding: 9px 18px;
+      border: none; border-radius: 30px;
+      cursor: pointer; transition: all 0.18s;
+    }
+    .btn-sm:active { transform: scale(0.93); }
+    .btn-sm-teal {
+      background: linear-gradient(135deg, var(--teal), var(--cyan));
+      color: var(--bg); font-size:18px; padding:11px 26px;
+      box-shadow: 0 0 16px rgba(103,254,189,0.4);
+    }
+    .btn-sm-ghost {
+      background: rgba(130,50,200,0.25);
+      color: var(--soft-lav);
+      border: 1px solid rgba(165,90,255,0.3);
+    }
+    .btn-sm-ghost:hover { background: rgba(130,50,200,0.45); }
+
+    .progress {
+      display: flex; gap: 7px; align-items: center;
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(165,90,255,0.25);
+      transition: all 0.3s;
+    }
+    .dot.done  { background: rgba(165,90,255,0.55); }
+    .dot.active {
+      background: var(--lav);
+      box-shadow: 0 0 8px var(--lav);
+      width: 22px; border-radius: 4px;
+    }
+
+    .nav-row {
+      display: flex; gap: 14px; align-items: center;
+      justify-content: center; flex-wrap: wrap;
+    }
+
+    .title-screen {
+      text-align: center;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 22px;
+    }
+    .title-main {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(36px, 9vw, 62px);
+      line-height: 1.05;
+      background: linear-gradient(135deg, var(--teal) 0%, var(--cyan) 25%, var(--lav) 55%, var(--pink) 80%, var(--hot-pink) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      filter: drop-shadow(0 0 16px rgba(103,254,189,0.3));
+    }
+    .title-sub {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(16px, 3.5vw, 22px);
+      color: var(--soft-lav);
+    }
+    .title-emoji { font-size: 48px; line-height: 1; }
+
+    .sandbox-root {
+      width: 100%;
+    }
+    .sandbox-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+    }
+    @media (orientation: landscape) and (min-width: 700px) {
+      .sandbox-layout {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: center;
+      }
+      .sandbox-grid-col {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        justify-content: center;
+      }
+      .sandbox-controls-col {
+        flex: 1;
+
+      }
+    }
+    .sandbox-grid-col {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    .sandbox-controls-col {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 3rem;
+    }
+    .canvas-container {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    #sb-canvas {
+      width: 100%;
+      height: auto;
+      background: #0c0020;
+      border-radius: 24px;
+      box-shadow: 0 0 30px rgba(103,254,189,0.25);
+      cursor: crosshair;
+      touch-action: none;
+      display: block;
+    }
+    .controls-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .rule-panel {
+      background: rgba(55,2,90,0.65);
+      border: 1px solid rgba(165,90,255,0.35);
+      border-radius: 32px;
+      padding: 14px 12px;
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      width: 100%;
+      backdrop-filter: blur(4px);
+    }
+    .rule-group { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .rule-label {
+      font-family: 'Fredoka One', cursive;
+      font-size: 12px; color: var(--soft-lav); text-align: center; line-height: 1.3;
+    }
+    .rule-checks { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .rule-check {
+      display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
+    }
+    .rule-check span {
+      font-family: 'Fredoka One', cursive;
+      font-size: 13px; color: var(--soft-lav);
+    }
+    .rule-check input[type=checkbox] { width: 40px; height: 40px; cursor: pointer; accent-color: var(--teal); }
+    .speed-row {
+      display: flex; align-items: center; gap: 12px; justify-content: center;
+      background: rgba(0,0,0,0.2);
+      padding: 6px 12px;
+      border-radius: 60px;
+    }
+    .speed-row label { font-family: 'Fredoka One', cursive; font-size: 20px; }
+    input[type=range] { accent-color: var(--lav); width: 130px; }
+
+    .menu-card {
+      width: 100%; max-width: 320px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 22px 20px;
+      background: linear-gradient(135deg, rgba(131,12,222,0.35), rgba(220,76,232,0.2));
+      border: 1.5px solid rgba(165,90,255,0.45);
+      border-radius: 20px;
+      cursor: pointer; transition: all 0.2s;
+      font-family: 'Fredoka One', cursive;
+      color: var(--white);
+      box-shadow: 0 0 20px rgba(131,12,222,0.25);
+    }
+    .menu-card:hover, .menu-card:focus {
+      transform: scale(1.04);
+      box-shadow: 0 0 36px rgba(165,90,255,0.5);
+      border-color: rgba(165,90,255,0.8);
+    }
+    .menu-card:active { transform: scale(0.97); }
+    .menu-card-sandbox {
+      background: linear-gradient(135deg, rgba(0,150,130,0.35), rgba(103,254,189,0.15));
+      border-color: rgba(103,254,189,0.45);
+      box-shadow: 0 0 20px rgba(103,254,189,0.2);
+    }
+    .menu-card-sandbox:hover {
+      box-shadow: 0 0 36px rgba(103,254,189,0.5);
+      border-color: rgba(103,254,189,0.8);
+    }
+    .menu-icon      { font-size: 40px; line-height: 1; }
+    .menu-card-title { font-size: clamp(22px,5vw,30px); }
+    .menu-card-sub  {
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px; font-weight: 600;
+      color: rgba(196,181,253,0.75);
+    }
+  </style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div id="app"></div>
+
+<script>
+// STARS BACKGROUND
+const starCanvas = document.getElementById('stars');
+const sctx = starCanvas.getContext('2d');
+const STARS = Array.from({length: 130}, () => ({
+  x: Math.random(), y: Math.random(),
+  r: Math.random() * 1.6 + 0.2,
+  base: Math.random(),
+  speed: 0.003 + Math.random() * 0.008,
+  phase: Math.random() * Math.PI * 2
+}));
+let starTick = 0;
+
+function resizeStars() {
+  starCanvas.width = window.innerWidth;
+  starCanvas.height = window.innerHeight;
+}
+function drawStars() {
+  sctx.clearRect(0, 0, starCanvas.width, starCanvas.height);
+  STARS.forEach(s => {
+    const a = s.base * 0.5 + 0.5 * Math.abs(Math.sin(starTick * s.speed + s.phase));
+    sctx.beginPath();
+    sctx.arc(s.x * starCanvas.width, s.y * starCanvas.height, s.r, 0, Math.PI * 2);
+    sctx.fillStyle = `rgba(196,181,253,${a * 0.85})`;
+    sctx.fill();
+  });
+  starTick++;
+  requestAnimationFrame(drawStars);
+}
+resizeStars();
+drawStars();
+window.addEventListener('resize', resizeStars);
+
+// GRID UTILITIES
+function makeGrid(cols, rows) {
+  return Array.from({length: rows}, () => new Uint8Array(cols));
+}
+
+function stepGrid(grid, cols, rows, birth, survive) {
+  const next = makeGrid(cols, rows);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      let n = 0;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if (!dr && !dc) continue;
+        n += grid[(r+dr+rows)%rows][(c+dc+cols)%cols];
+      }
+      if (grid[r][c]) next[r][c] = survive.has(n) ? 1 : 0;
+      else             next[r][c] = birth.has(n)   ? 1 : 0;
+    }
+  }
+  return next;
+}
+
+function drawGrid(canvas, grid, cols, rows, opts = {}) {
+  if (!canvas || !grid) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  if (W === 0 || H === 0) return;
+  const cW = W / cols, cH = H / rows;
+  const pad = opts.pad ?? 1.5;
+  const onColor  = opts.onColor  || '#67FEBD';
+  const offColor = opts.offColor || 'rgba(130,50,200,0.13)';
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(23,0,50,0.97)';
+  ctx.fillRect(0, 0, W, H);
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = c * cW + pad, y = r * cH + pad;
+      const w = cW - pad*2,   h = cH - pad*2;
+      const on   = grid[r][c] === 1;
+      const hiOn = opts.hiOn  && opts.hiOn[r]?.[c];
+      const hiNbr = opts.hiNbr && opts.hiNbr[r]?.[c];
+
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, w, h, Math.max(2, pad));
+      else ctx.rect(x, y, w, h);
+
+      if (on) {
+        const col = hiOn ? '#fecd39' : onColor;
+        ctx.fillStyle = col;
+        ctx.shadowColor = col;
+        ctx.shadowBlur  = 10;
+        ctx.fill();
+        ctx.shadowBlur  = 0;
+      } else if (hiNbr) {
+        ctx.fillStyle = 'rgba(220,76,232,0.45)';
+        ctx.fill();
+        ctx.strokeStyle = '#dc4ce8';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = offColor;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(165,90,255,0.13)';
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function resizeCanvasToContainer(canvas) {
+  if (!canvas) return false;
+  const container = canvas.parentElement;
+  if (!container) return false;
+  const side = Math.min(container.clientWidth, container.clientHeight);
+  if (side > 0 && (canvas.width !== side || canvas.height !== side)) {
+    canvas.width = side;
+    canvas.height = side;
+    return true;
+  }
+  return false;
+}
+
+// APP STATE & PAGES
+const app = document.getElementById('app');
+let curPage = 0;
+let storyInterval = null;
+let storyTimeout = null;
+let pageCanvas, pageCtx;
+
+function clearStoryTimers() {
+  if (storyInterval) { clearInterval(storyInterval); storyInterval = null; }
+  if (storyTimeout)  { clearTimeout(storyTimeout);   storyTimeout  = null; }
+}
+
+function goto(n) {
+  clearStoryTimers();
+  curPage = n;
+  render();
+}
+
+//  SANDBOX GLOBAL STATE
+let sandboxState = {
+  grid: null,
+  cols: 20, rows: 20,
+  birthSet: new Set([3]),
+  surviveSet: new Set([2,3]),
+  playing: false,
+  speed: 6,
+  simTimer: null
+};
+
+function stopSandboxSim() {
+  if (sandboxState.simTimer) {
+    clearInterval(sandboxState.simTimer);
+    sandboxState.simTimer = null;
+  }
+  sandboxState.playing = false;
+}
+
+function startSandboxSim(redrawFn) {
+  if (sandboxState.simTimer) stopSandboxSim();
+  sandboxState.playing = true;
+  sandboxState.simTimer = setInterval(() => {
+    if (!sandboxState.grid) return;
+    sandboxState.grid = stepGrid(sandboxState.grid, sandboxState.cols, sandboxState.rows, sandboxState.birthSet, sandboxState.surviveSet);
+    if (redrawFn) redrawFn();
+  }, 1000 / sandboxState.speed);
+}
+
+// RENDER ROUTER
+function render() {
+  app.innerHTML = '';
+  if (curPage === 0)      return renderTitle();
+  if (curPage === 'menu') return renderMenu();
+  if (curPage >= 1 && curPage <= 16) return renderStory(curPage);
+  if (curPage === 17)     return renderSandbox();
+}
+
+// TITLE + MENU
+function renderTitle() {
+  app.innerHTML = `<div class="title-screen page"><div class="title-emoji">🌱✨</div><div class="title-main">My First<br>Cellular<br>Automata</div><div class="title-sub">A tiny world with simple rules</div><button class="btn btn-play" id="go-btn">Let's Go! →</button><div style="font-family:'Fredoka One';font-size:14px;color:rgba(196,181,253,0.45);">tap to begin</div></div>`;
+  document.getElementById('go-btn').onclick = () => goto('menu');
+}
+
+function renderMenu() {
+  app.innerHTML = `<div class="title-screen page" style="gap:28px;"><div class="title-main" style="font-size:clamp(28px,7vw,48px);">What do you<br>want to do?</div><button class="menu-card" id="menu-story"><div class="menu-icon">📖</div><div class="menu-card-title">Story Mode</div><div class="menu-card-sub">Learn step by step</div></button><button class="menu-card menu-card-sandbox" id="menu-sandbox"><div class="menu-icon">🎮</div><div class="menu-card-title">Sandbox</div><div class="menu-card-sub">Jump straight to playing!</div></button><button class="btn btn-ghost" id="menu-back" style="font-size:14px;padding:8px 20px;">← Back to Title</button></div>`;
+  document.getElementById('menu-story').onclick = () => goto(1);
+  document.getElementById('menu-sandbox').onclick = () => { resetSandboxStateIfNeeded(); goto(17); };
+  document.getElementById('menu-back').onclick = () => goto(0);
+}
+
+function resetSandboxStateIfNeeded() {
+  if (!sandboxState.grid) {
+    sandboxState.grid = makeGrid(20,20);
+    sandboxState.birthSet = new Set([3]);
+    sandboxState.surviveSet = new Set([2,3]);
+    sandboxState.playing = false;
+    sandboxState.speed = 6;
+    if (sandboxState.simTimer) clearInterval(sandboxState.simTimer);
+    sandboxState.simTimer = null;
+    for(let i=0;i<20;i++) for(let j=0;j<20;j++) sandboxState.grid[i][j]=Math.random()<0.2?1:0;
+  }
+}
+
+// STORY MODE
+const TOTAL = 16;
+const STORY = [null,
+  { line1: "This is a tiny square.", line2: "It's called a cell.", hint: "✨", setup: s1 },
+  { line1: "Tap the cell!", line2: "Now it's ON!", hint: "👆 tap the square!", setup: s2 },
+  { line1: "Cells can be ON…", line2: "…or OFF.", hint: "👆 tap to switch", setup: s3 },
+  { line1: "One cell is nice…", line2: "…but lots are more fun!", hint: "✨", setup: s4 },
+  { line1: "Tap any cell to turn it ON.", line2: null, hint: "👆 tap cells to light them up!", setup: s5 },
+  { line1: "Cells next to each other…", line2: "…are neighbors!", hint: "👆 tap a cell to see its neighbors", setup: s6 },
+  { line1: "Each cell watches", line2: "its neighbors.", hint: "✨", setup: s7 },
+  { line1: "It counts how many", line2: "neighbors are ON.", hint: "👆 tap neighbors to toggle them!", setup: s_count },
+  { line1: "If 3 neighbors are ON…", line2: "I turn ON too! ✨", hint: "👀 watch carefully…", setup: s8 },
+  { line1: "If 2 or 3 neighbors are ON…", line2: "I stay ON! 💚", hint: "✨", setup: s9 },
+  { line1: "These rules tell each cell…", line2: "what to do next.", hint: "👀 Watch one step happen slowly →", setup: s10_newRuleDemo },
+  { line1: "All the cells follow", line2: "the same rules… at the same time!", hint: "✨", setup: s11_sync },
+  { line1: "Press ▶ Play…", line2: "and see what happens!", hint: null, setup: s12_playPreview },
+  { line1: "Watch closely…", line2: "It keeps changing!", hint: "✨ tap anywhere to continue", setup: s13_moving },
+  { line1: "The cells follow the rules...", line2: "and make patterns all by themselves!", hint: "✨ tap anywhere to continue", setup: s14_emerge },
+  { line1: "What happens if", line2: "YOU choose the rules?", hint: null, setup: s15_sandboxInvite },
+];
+
+function renderStory(n) {
+  const cfg = STORY[n];
+  const dots = Array.from({length: TOTAL}, (_, i) => `<div class="dot ${i+1 < n ? 'done' : (i+1 === n ? 'active' : '')}"></div>`).join('');
+  const canvSize = Math.min(window.innerWidth - 52, 340);
+  app.innerHTML = `<div class="page" id="story-page"><div class="page-text">${cfg.line1}${cfg.line2 ? `<span class="sub">${cfg.line2}</span>` : ''}</div><canvas id="page-canvas" width="${canvSize}" height="${canvSize}" style="border-radius:14px; touch-action:none;"></canvas><div class="hint" id="story-hint">${cfg.hint || ''}</div><div class="nav-row"><button class="btn btn-ghost" id="prev-btn">← Back</button><div class="progress">${dots}</div><button class="btn btn-next" id="next-btn" style="display:none">Next →</button></div></div>`;
+  pageCanvas = document.getElementById('page-canvas'); pageCtx = pageCanvas.getContext('2d');
+  document.getElementById('prev-btn').onclick = () => goto(n === 1 ? 'menu' : n-1);
+  if (document.getElementById('next-btn')) document.getElementById('next-btn').onclick = () => goto(n+1);
+  cfg.setup(canvSize);
+}
+
+function tapAnywhere(cb){ const el=document.getElementById('story-page'); if(!el)return; const once=()=>{el.removeEventListener('click',once); cb();}; el.addEventListener('click',once);}
+
+function drawBigCell(canvas,on,pulse){ const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,pad=18; ctx.clearRect(0,0,W,H); ctx.beginPath(); ctx.roundRect?ctx.roundRect(pad,pad,W-pad*2,H-pad*2,18):ctx.rect(pad,pad,W-pad*2,H-pad*2); if(on){ ctx.fillStyle='#67FEBD'; ctx.shadowColor='#67FEBD'; ctx.shadowBlur=28+12*pulse; ctx.fill(); ctx.shadowBlur=0; }else{ ctx.fillStyle=`rgba(130,50,200,${0.18+0.1*pulse})`; ctx.fill(); ctx.strokeStyle=`rgba(165,90,255,${0.25+0.15*pulse})`; ctx.lineWidth=2.5; ctx.stroke(); } }
+function s1(sz){ let t=0; drawBigCell(pageCanvas,false,0); storyInterval=setInterval(()=>{t++; drawBigCell(pageCanvas,false,0.5+0.5*Math.sin(t*0.06));},50); document.getElementById('next-btn').style.display=''; }
+function s2(sz){
+  let on=false;
+  const subEl = document.querySelector('.page-text .sub');
+  if (subEl) subEl.style.visibility = 'hidden';
+  drawBigCell(pageCanvas,false,0);
+  const tap=()=>{
+    if(on)return; on=true;
+    if (subEl) subEl.style.visibility = '';
+    let t=0; storyInterval=setInterval(()=>{t++; drawBigCell(pageCanvas,true,0.5+0.5*Math.sin(t*0.25)); if(t>40){ clearStoryTimers(); drawBigCell(pageCanvas,true,1); }},40);
+    document.getElementById('next-btn').style.display='';
+  };
+  pageCanvas.addEventListener('click',tap);
+  pageCanvas.addEventListener('touchend',e=>{e.preventDefault(); tap();},{passive:false});
+}
+function s3(sz){ let on=false; drawBigCell(pageCanvas,false,0.3); const toggle=()=>{on=!on; drawBigCell(pageCanvas,on,on?1:0.3); document.getElementById('next-btn').style.display='';}; pageCanvas.addEventListener('click',toggle); pageCanvas.addEventListener('touchend',e=>{e.preventDefault(); toggle();},{passive:false});}
+function s4(sz){ const cols=10,rows=10,grid=makeGrid(cols,rows); drawGrid(pageCanvas,grid,cols,rows,{pad:2}); setTimeout(()=>{ if(!document.getElementById('page-canvas'))return; [[0,1],[1,2],[2,0],[2,1],[2,2]].forEach(([r,c])=>{if(r+3<rows&&c+3<cols)grid[r+3][c+3]=1;}); drawGrid(pageCanvas,grid,cols,rows,{pad:2}); },800); document.getElementById('next-btn').style.display='';}
+function s5(sz){ const cols=10,rows=10,grid=makeGrid(cols,rows); drawGrid(pageCanvas,grid,cols,rows,{pad:2}); let taps=0; const handleTap=(px,py)=>{ const c=Math.floor(px/(pageCanvas.width/cols)),r=Math.floor(py/(pageCanvas.height/rows)); if(r>=0&&r<rows&&c>=0&&c<cols){ grid[r][c]=grid[r][c]?0:1; drawGrid(pageCanvas,grid,cols,rows,{pad:2}); taps++; if(taps>=3)document.getElementById('next-btn').style.display=''; } }; pageCanvas.addEventListener('click',e=>{const rect=pageCanvas.getBoundingClientRect(); handleTap(e.clientX-rect.left,e.clientY-rect.top);}); pageCanvas.addEventListener('touchend',e=>{e.preventDefault(); const rect=pageCanvas.getBoundingClientRect(); const t=e.changedTouches[0]; handleTap(t.clientX-rect.left,t.clientY-rect.top);},{passive:false});}
+function s6(sz){ const cols=7,rows=7,grid=makeGrid(cols,rows); [[2,3],[1,1],[5,5],[4,2],[3,5]].forEach(([r,c])=>{if(r<rows&&c<cols)grid[r][c]=1;}); drawGrid(pageCanvas,grid,cols,rows,{pad:2}); let shown=false; const handleTap=(px,py)=>{ const cW=pageCanvas.width/cols,cH=pageCanvas.height/rows,cc=Math.floor(px/cW),rr=Math.floor(py/cH); if(rr<0||rr>=rows||cc<0||cc>=cols)return; const hiNbr={}, hiOn={}; if(!hiOn[rr])hiOn[rr]={}; hiOn[rr][cc]=true; for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){ if(!dr&&!dc)continue; const nr=rr+dr,nc=cc+dc; if(nr>=0&&nr<rows&&nc>=0&&nc<cols){ if(grid[nr][nc]){ if(!hiOn[nr])hiOn[nr]={}; hiOn[nr][nc]=true; } else { if(!hiNbr[nr])hiNbr[nr]={}; hiNbr[nr][nc]=true; } } } drawGrid(pageCanvas,grid,cols,rows,{pad:2,hiOn,hiNbr}); if(!shown){ shown=true; document.getElementById('next-btn').style.display=''; } }; pageCanvas.addEventListener('click',e=>{const rect=pageCanvas.getBoundingClientRect(); handleTap(e.clientX-rect.left,e.clientY-rect.top);}); pageCanvas.addEventListener('touchend',e=>{e.preventDefault(); const rect=pageCanvas.getBoundingClientRect(); const t=e.changedTouches[0]; handleTap(t.clientX-rect.left,t.clientY-rect.top);},{passive:false});}
+function s7(sz){
+  const cols=5, rows=5, grid=makeGrid(cols,rows);
+  const NEIGHBORS=[[1,1],[1,2],[1,3],[2,1],[2,3],[3,1],[3,2],[3,3]];
+  let t=0;
+  storyInterval=setInterval(()=>{
+    t++;
+    drawGrid(pageCanvas,grid,cols,rows,{pad:2});
+    const ctx=pageCtx, cW=pageCanvas.width/cols, cH=pageCanvas.height/rows;
+    NEIGHBORS.forEach(([r,c])=>{
+      const x=c*cW+2, y=r*cH+2, w=cW-4, h=cH-4;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(x,y,w,h,4) : ctx.rect(x,y,w,h);
+      ctx.fillStyle='#67FEBD'; ctx.shadowColor='#67FEBD'; ctx.shadowBlur=10;
+      ctx.fill(); ctx.shadowBlur=0;
+    });
+    const alpha=0.35+0.35*Math.sin(t*0.09);
+    const x=2*cW+2, y=2*cH+2, w=cW-4, h=cH-4;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x,y,w,h,4) : ctx.rect(x,y,w,h);
+    ctx.fillStyle=`rgba(254,205,57,${alpha})`; ctx.shadowColor='#fecd39'; ctx.shadowBlur=14*alpha;
+    ctx.fill(); ctx.shadowBlur=0;
+  },50);
+  document.getElementById('next-btn').style.display='';
+}
+function s_count(sz) {
+  const cols=5, rows=5, grid=makeGrid(cols,rows);
+  const NEIGHBORS=[[1,1],[1,2],[1,3],[2,1],[2,3],[3,1],[3,2],[3,3]];
+  [0, 3, 6].forEach(i=>{ const [r,c]=NEIGHBORS[i]; grid[r][c]=1; });
+
+  let t=0, interacted=false;
+
+  function countOn(){ return NEIGHBORS.reduce((n,[r,c])=>n+grid[r][c], 0); }
+
+  function updateHint() {
+    const n=countOn();
+    const hintEl=document.getElementById('story-hint');
+    if(hintEl) hintEl.textContent=`${n} neighbor${n===1?'':'s'} ${n===1?'is':'are'} ON — tap to change it!`;
+  }
+
+  storyInterval=setInterval(()=>{
+    t++;
+    drawGrid(pageCanvas, grid, cols, rows, {pad:2});
+    const ctx=pageCtx, cW=pageCanvas.width/cols, cH=pageCanvas.height/rows;
+    const alpha=0.45+0.3*Math.sin(t*0.09);
+    const x=2*cW+2, y=2*cH+2, w=cW-4, h=cH-4;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x,y,w,h,4) : ctx.rect(x,y,w,h);
+    ctx.fillStyle=`rgba(254,205,57,${alpha})`; ctx.shadowColor='#fecd39'; ctx.shadowBlur=14*alpha;
+    ctx.fill(); ctx.shadowBlur=0;
+  }, 50);
+
+  updateHint();
+
+  function handleTap(px, py) {
+    const cW=pageCanvas.width/cols, cH=pageCanvas.height/rows;
+    const cc=Math.floor(px/cW), rr=Math.floor(py/cH);
+    const isNeighbor=NEIGHBORS.some(([r,c])=>r===rr&&c===cc);
+    if(!isNeighbor) return;
+    grid[rr][cc]=grid[rr][cc]?0:1;
+    updateHint();
+    if(!interacted){
+      interacted=true;
+      document.getElementById('next-btn').style.display='';
+    }
+  }
+
+  pageCanvas.addEventListener('click', e=>{
+    const rect=pageCanvas.getBoundingClientRect();
+    handleTap(e.clientX-rect.left, e.clientY-rect.top);
+  });
+  pageCanvas.addEventListener('touchend', e=>{
+    e.preventDefault();
+    const rect=pageCanvas.getBoundingClientRect();
+    const touch=e.changedTouches[0];
+    handleTap(touch.clientX-rect.left, touch.clientY-rect.top);
+  }, {passive:false});
+}
+
+function s8(sz){ const cols=5,rows=5,grid=makeGrid(cols,rows); [[1,2],[2,1],[3,2]].forEach(([r,c])=>grid[r][c]=1); drawGrid(pageCanvas,grid,cols,rows,{pad:2}); setTimeout(()=>{if(!pageCanvas)return; let t=0; storyInterval=setInterval(()=>{t++; if(t<25){ drawGrid(pageCanvas,grid,cols,rows,{pad:2}); const ctx=pageCtx,cW=pageCanvas.width/cols,cH=pageCanvas.height/rows,x=2*cW+2,y=2*cH+2,w=cW-4,h=cH-4; ctx.beginPath(); ctx.roundRect?ctx.roundRect(x,y,w,h,4):ctx.rect(x,y,w,h); ctx.fillStyle=`rgba(103,254,189,${0.5+0.5*Math.sin(t*0.4)*0.7})`; ctx.shadowColor='#67FEBD'; ctx.shadowBlur=10*(0.5+0.5*Math.sin(t*0.4)); ctx.fill(); ctx.shadowBlur=0; }else{ clearStoryTimers(); grid[2][2]=1; drawGrid(pageCanvas,grid,cols,rows,{pad:2}); document.getElementById('next-btn').style.display=''; } },50); },600);}
+function s9(sz){const cols=5,rows=5,grid=makeGrid(cols,rows); [[1,2],[2,1],[2,2],[3,2]].forEach(([r,c])=>grid[r][c]=1); let t=0; storyInterval=setInterval(()=>{t++; drawGrid(pageCanvas,grid,cols,rows,{pad:2}); const ctx=pageCtx,cW=pageCanvas.width/cols,cH=pageCanvas.height/rows,x=2*cW+2,y=2*cH+2,w=cW-4,h=cH-4; ctx.beginPath(); ctx.roundRect?ctx.roundRect(x,y,w,h,4):ctx.rect(x,y,w,h); ctx.fillStyle='#67FEBD'; ctx.shadowColor='#67FEBD'; ctx.shadowBlur=12+8*Math.sin(t*0.08); ctx.fill(); ctx.shadowBlur=0;},50); document.getElementById('next-btn').style.display='';}
+
+
+function s10_newRuleDemo(sz) {
+  const cols = 9, rows = 9;
+  let grid = makeGrid(cols, rows);
+  grid[4][3] = grid[4][4] = grid[4][5] = 1;
+  grid[3][4] = 1; grid[5][4] = 1;
+  drawGrid(pageCanvas, grid, cols, rows, { pad: 1.5 });
+
+  const nextBtn = document.getElementById('next-btn');
+  if (nextBtn) nextBtn.style.display = 'none';
+
+  storyTimeout = setTimeout(() => {
+    storyTimeout = null;
+    if (!document.getElementById('page-canvas')) return;
+    const nextGrid = stepGrid(grid, cols, rows, new Set([3]), new Set([2,3]));
+    grid = nextGrid;
+    drawGrid(pageCanvas, grid, cols, rows, { pad: 1.5, onColor: '#fecd39' });
+    if (nextBtn) nextBtn.style.display = '';
+    const hintDiv = document.getElementById('story-hint');
+    if (hintDiv) hintDiv.innerHTML = "✨ The rules made the cells change! That was one STEP.";
+  }, 1600);
+}
+
+function s11_sync(sz) {
+  const cols = 10, rows = 10, grid = makeGrid(cols, rows);
+  [[2,3],[2,4],[2,5],[6,6],[6,7],[7,6],[7,7]].forEach(([r,c])=>grid[r][c]=1);
+  drawGrid(pageCanvas, grid, cols, rows, { pad: 2 });
+  document.getElementById('next-btn').style.display = '';
+}
+
+function s12_playPreview(sz){
+  let cols=10,rows=10,grid=makeGrid(cols,rows);
+  [[1,2],[2,3],[3,1],[3,2],[3,3],[6,4],[6,5],[6,6]].forEach(([r,c])=>grid[r][c]=1);
+  drawGrid(pageCanvas,grid,cols,rows,{pad:2});
+  const hintEl=document.getElementById('story-hint'); hintEl.style.display=''; hintEl.innerHTML='';
+  const playBtn=document.createElement('button'); playBtn.className='btn btn-play btn-sm-teal btn-sm'; playBtn.style.cssText='font-size:20px;padding:12px 28px;'; playBtn.textContent='▶ Play!'; hintEl.appendChild(playBtn);
+  let playing=false;
+  playBtn.onclick=e=>{
+    e.stopPropagation();
+    if(!playing){
+      playing=true; playBtn.textContent='⏸ Pause';
+      storyInterval=setInterval(()=>{ grid=stepGrid(grid,cols,rows,new Set([3]),new Set([2,3])); drawGrid(pageCanvas,grid,cols,rows,{pad:2}); },220);
+      setTimeout(()=>{ const nb=document.getElementById('next-btn'); if(nb)nb.style.display=''; },1200);
+    }else{
+      playing=false; playBtn.textContent='▶ Play!';
+      if(storyInterval){ clearInterval(storyInterval); storyInterval=null; }
+    }
+  };
+}
+
+function s13_moving(sz){
+  let cols=12,rows=12,grid=makeGrid(cols,rows);
+  [[1,2],[2,3],[3,1],[3,2],[3,3],[7,1],[7,2],[7,3]].forEach(([r,c])=>grid[r][c]=1);
+  drawGrid(pageCanvas,grid,cols,rows,{pad:2});
+  storyInterval=setInterval(()=>{grid=stepGrid(grid,cols,rows,new Set([3]),new Set([2,3])); drawGrid(pageCanvas,grid,cols,rows,{pad:2});},160);
+  tapAnywhere(()=>{ clearStoryTimers(); document.getElementById('next-btn').style.display='';});
+}
+function s14_emerge(sz){
+  let cols=14,rows=12,grid=makeGrid(cols,rows);
+  [[0,1],[1,2],[2,0],[2,1],[2,2],[7,1],[7,2],[7,3],[4,8],[4,9],[5,8],[5,9],[9,9],[10,10],[11,8],[11,9],[11,10]].forEach(([r,c])=>grid[r][c]=1);
+  storyInterval=setInterval(()=>{grid=stepGrid(grid,cols,rows,new Set([3]),new Set([2,3])); drawGrid(pageCanvas,grid,cols,rows,{pad:1.5});},130);
+  tapAnywhere(()=>{ clearStoryTimers(); document.getElementById('next-btn').style.display='';});
+}
+function s15_sandboxInvite(sz){
+  let cols=12,rows=12,grid=makeGrid(cols,rows);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)grid[r][c]=Math.random()<0.28?1:0;
+  drawGrid(pageCanvas,grid,cols,rows,{pad:2});
+  storyInterval=setInterval(()=>{grid=stepGrid(grid,cols,rows,new Set([3]),new Set([2,3])); drawGrid(pageCanvas,grid,cols,rows,{pad:2});},150);
+  const btn=document.getElementById('next-btn'); if(btn){ btn.style.display=''; btn.textContent="Let's find out!"; btn.onclick=()=>{ clearStoryTimers(); goto(17); }; }
+}
+
+// SANDBOX
+function renderSandbox() {
+  if (!sandboxState.grid) {
+    sandboxState.grid = makeGrid(20,20);
+    for(let i=0;i<20;i++) for(let j=0;j<20;j++) sandboxState.grid[i][j]=Math.random()<0.2?1:0;
+    sandboxState.birthSet = new Set([3]);
+    sandboxState.surviveSet = new Set([2,3]);
+    sandboxState.playing = false;
+    sandboxState.speed = 6;
+    if (sandboxState.simTimer) clearInterval(sandboxState.simTimer);
+    sandboxState.simTimer = null;
+  }
+  stopSandboxSim();
+  const cols = 20, rows = 20;
+  app.innerHTML = `
+    <div class="sandbox-root page" style="width:100%;">
+      <div class="sandbox-layout">
+        <div class="sandbox-grid-col">
+          <div class="canvas-container" style="width:100%; display: flex; justify-content: center;">
+            <canvas id="sb-canvas" style="width:100%; height:auto; max-width: min(70vh, 500px); aspect-ratio:1/1; border-radius:24px;"></canvas>
+          </div>
+        </div>
+        <div class="sandbox-controls-col">
+          <div class="controls-row">
+            <button class="btn-sm btn-sm-teal" id="sb-play">▶ Play</button>
+            <button class="btn-sm btn-sm-ghost" id="sb-step">Step →</button>
+            <button class="btn-sm btn-sm-ghost" id="sb-clear">🗑 Clear</button>
+            <button class="btn-sm btn-sm-ghost" id="sb-random">🎲 Random</button>
+          </div>
+          <div class="speed-row"><label>🐢</label><input type="range" id="sb-speed" min="1" max="20" value="${sandboxState.speed}"><label>🐇</label></div>
+          <div class="rule-panel"><div class="rule-group"><div class="rule-label">✨ Turn ON<br>if neighbors are:</div><div class="rule-checks" id="birth-checks"></div></div><div class="rule-group"><div class="rule-label">💚 Stay ON<br>if neighbors are:</div><div class="rule-checks" id="survive-checks"></div></div></div>
+          <div class="controls-row" style="gap: 12px; margin-top: 8px;">
+            <button class="btn btn-ghost" id="sb-back-story" style="font-size:14px;padding:8px 20px;">← Back to Story</button>
+            <button class="btn btn-ghost" id="sb-menu-main" style="font-size:14px;padding:8px 20px; background: rgba(103,254,189,0.2); border-color: #67FEBD;">🏠 Main Menu</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  const canvas = document.getElementById('sb-canvas');
+  if (!canvas) return;
+  function refreshCanvasDraw() { if(canvas){ resizeCanvasToContainer(canvas); drawGrid(canvas, sandboxState.grid, cols, rows, { pad: 1.5, onColor: '#67FEBD' }); } }
+  refreshCanvasDraw();
+  const redrawGrid = () => refreshCanvasDraw();
+  function buildChecks(id, currentSet) { const container = document.getElementById(id); if(!container)return; container.innerHTML = ''; for(let n=1;n<=8;n++){ const lbl = document.createElement('label'); lbl.className='rule-check'; const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=currentSet.has(n); cb.dataset.n=n; const span=document.createElement('span'); span.textContent=n; lbl.appendChild(cb); lbl.appendChild(span); container.appendChild(lbl); } }
+  buildChecks('birth-checks', sandboxState.birthSet); buildChecks('survive-checks', sandboxState.surviveSet);
+  document.getElementById('birth-checks')?.addEventListener('change', (e) => { if(e.target.type==='checkbox'){ const n=+e.target.dataset.n; if(e.target.checked) sandboxState.birthSet.add(n); else sandboxState.birthSet.delete(n); if(sandboxState.playing){ stopSandboxSim(); startSandboxSim(redrawGrid); } redrawGrid(); } });
+  document.getElementById('survive-checks')?.addEventListener('change', (e) => { if(e.target.type==='checkbox'){ const n=+e.target.dataset.n; if(e.target.checked) sandboxState.surviveSet.add(n); else sandboxState.surviveSet.delete(n); if(sandboxState.playing){ stopSandboxSim(); startSandboxSim(redrawGrid); } redrawGrid(); } });
+  function getCellFromCoords(clientX,clientY){ const rect=canvas.getBoundingClientRect(); const scaleX=canvas.width/rect.width, scaleY=canvas.height/rect.height; const canvasX=(clientX-rect.left)*scaleX, canvasY=(clientY-rect.top)*scaleY; if(canvasX<0||canvasY<0||canvasX>canvas.width||canvasY>canvas.height)return null; const c=Math.floor(canvasX/(canvas.width/cols)), r=Math.floor(canvasY/(canvas.height/rows)); if(r>=0&&r<rows&&c>=0&&c<cols) return [r,c]; return null; }
+  let dragVal=null;
+  function paintCellAt(clientX,clientY,isDrag=false){ const pos=getCellFromCoords(clientX,clientY); if(!pos)return; const [r,c]=pos; if(!isDrag) dragVal=sandboxState.grid[r][c]?0:1; if(dragVal!==null){ sandboxState.grid[r][c]=dragVal; redrawGrid(); if(sandboxState.playing){ stopSandboxSim(); startSandboxSim(redrawGrid); } } }
+  canvas.addEventListener('mousedown',(e)=>{e.preventDefault(); dragVal=null; paintCellAt(e.clientX,e.clientY,false);}); canvas.addEventListener('mousemove',(e)=>{if(dragVal!==null)paintCellAt(e.clientX,e.clientY,true);}); window.addEventListener('mouseup',()=>{dragVal=null;});
+  canvas.addEventListener('touchstart',(e)=>{e.preventDefault(); dragVal=null; const touch=e.touches[0]; paintCellAt(touch.clientX,touch.clientY,false);},{passive:false}); canvas.addEventListener('touchmove',(e)=>{e.preventDefault(); if(dragVal!==null){ const touch=e.touches[0]; paintCellAt(touch.clientX,touch.clientY,true); }},{passive:false}); canvas.addEventListener('touchend',()=>{dragVal=null;});
+  const playBtn=document.getElementById('sb-play'), stepBtn=document.getElementById('sb-step'), clearBtn=document.getElementById('sb-clear'), randomBtn=document.getElementById('sb-random'), speedSlider=document.getElementById('sb-speed');
+  function updatePlayButton(){ if(playBtn) playBtn.textContent = sandboxState.playing ? '⏸ Pause' : '▶ Play'; }
+  playBtn.onclick = () => { if(sandboxState.playing){ stopSandboxSim(); }else{ startSandboxSim(redrawGrid); } updatePlayButton(); };
+  stepBtn.onclick = () => { if(sandboxState.playing) stopSandboxSim(); sandboxState.grid = stepGrid(sandboxState.grid, cols, rows, sandboxState.birthSet, sandboxState.surviveSet); redrawGrid(); updatePlayButton(); };
+  clearBtn.onclick = () => { if(sandboxState.playing) stopSandboxSim(); sandboxState.grid = makeGrid(cols, rows); redrawGrid(); updatePlayButton(); };
+  randomBtn.onclick = () => { if(sandboxState.playing) stopSandboxSim(); for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) sandboxState.grid[r][c]=Math.random()<0.3?1:0; redrawGrid(); updatePlayButton(); };
+  speedSlider.oninput = (e) => { sandboxState.speed = +e.target.value; if(sandboxState.playing){ stopSandboxSim(); startSandboxSim(redrawGrid); } updatePlayButton(); };
+  document.getElementById('sb-back-story').onclick = () => { stopSandboxSim(); goto(16); };
+  document.getElementById('sb-menu-main').onclick = () => { stopSandboxSim(); goto('menu'); };
+  function handleOrientationResize(){ if(curPage===16 && canvas && sandboxState.grid){ resizeCanvasToContainer(canvas); drawGrid(canvas, sandboxState.grid, cols, rows, { pad: 1.5 }); } }
+  window.addEventListener('resize', handleOrientationResize);
+  updatePlayButton();
+  if(sandboxState.playing) startSandboxSim(redrawGrid);
+}
+
+render();
+</script>
+</body>
+</html>
